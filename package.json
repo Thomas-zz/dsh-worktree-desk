@@ -1,0 +1,46 @@
+{
+  "name": "dsh-worktree-desk",
+  "version": "0.4.0",
+  "description": "本机 Git 工作树总览：状态、就地差异、本地分支与跨 harness 会话",
+  "private": true,
+  "type": "module",
+  "main": "src/host.js",
+  "exports": {
+    ".": "./src/host.js",
+    "./client": "./dist/client.js",
+    "./package.json": "./package.json",
+    "./icon": "./icon.svg"
+  },
+  "icon": "./icon.svg",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=22.13",
+    "dsh": ">=0.2.2-rc.5 <0.3.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test 'test/*.test.mjs'",
+    "dev:web": "node scripts/dev-web.mjs",
+    "watch": "node scripts/build.mjs --watch"
+  },
+  "files": [
+    "src",
+    "dist",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}
