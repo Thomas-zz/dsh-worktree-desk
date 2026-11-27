@@ -1,6 +1,6 @@
 {
   "name": "dsh-worktree-desk",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "本机 Git 工作树总览：状态、就地差异、本地分支与跨 harness 会话",
   "license": "MIT",
   "repository": {

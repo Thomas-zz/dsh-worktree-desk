@@ -1,5 +1,13 @@
 # 工作树 · DSH Worktree Desk
 
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![npm](https://img.shields.io/badge/npm-dsh--worktree--desk-6f42c1.svg)](#安装)
+[![DSH plugin](https://img.shields.io/badge/DSH-plugin-6f42c1.svg)](#安装)
+
+> **In one line:** a read-only sidebar panel for DeepSeek Harness that lists every Git worktree on the machine, grouped by repository, with status, inline diffs, local branches and the Codex / ZCode / DSH sessions matched to each worktree. Fetch, pull, push and AI code review run only when you ask for them.
+>
+> Install from npm as `dsh-worktree-desk`, or in DSH under Settings → Plugins → Install third-party plugin. Verified on macOS only. The rest of this README is in Chinese.
+
 在 DeepSeek Harness 侧栏打开 **工作树**，一眼看到本机所有仓库的工作树：哪些有改动、哪些没推送、哪些目录已经没了；就地看差异和本地分支，发起 AI 代码审查并把结论标在对应的行上，以及能匹配到的 Codex / ZCode / DSH 会话。
 
 面板本身只读：读取仓库状态，不创建、移动、切换、合并工作树，也不删文件。会动手的只有下面几件，都由你主动点击触发：
