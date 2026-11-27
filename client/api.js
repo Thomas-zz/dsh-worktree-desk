@@ -11,7 +11,8 @@ async function json(response, fallback) {
 }
 
 // action 为真时走 POST 并带上操作标记；宿主只认带标记的写请求。
-export async function request(name, params, signal, action) {
+// body 是随请求带上的 JSON 正文（内容多、不适合放进地址栏的，比如一段提示词）。
+export async function request(name, params, signal, action, body) {
   const url = base(`api/worktree-desk/${name}`)
   url.search = new URLSearchParams(params).toString()
   return json(
@@ -19,7 +20,16 @@ export async function request(name, params, signal, action) {
       signal,
       cache: 'no-store',
       ...(action
-        ? { method: 'POST', headers: { 'X-Worktree-Action': action } }
+        ? {
+            method: 'POST',
+            headers: {
+              'X-Worktree-Action': action,
+              ...(body === undefined
+                ? {}
+                : { 'content-type': 'application/json' }),
+            },
+            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+          }
         : {}),
     }),
     (status) => `读取失败（${status}）`,

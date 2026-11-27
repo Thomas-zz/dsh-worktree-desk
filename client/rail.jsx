@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
+import { Icon } from './icons.jsx'
 import { isQuiet, repoSummary } from './model.js'
 
 // 仓库导航栏：多工作树的、或有动态的仓库常驻；只有主检出且安静的收在末尾。
-export function Rail({ repos, counts, scope, choose }) {
+// 可以整栏收起，把地方让给清单和详情（收起后筛选条上出现仓库下拉）。
+export function Rail({ repos, counts, scope, choose, onCollapse }) {
   const [expanded, setExpanded] = useState(false)
   // 有异常用红、有改动或未推送用琥珀、只剩失效登记用灰。
   const tone = (repo) => {
@@ -41,6 +43,17 @@ export function Rail({ repos, counts, scope, choose }) {
             ? repos.length
             : `${settled}/${repos.length}`}
         </span>
+        {onCollapse && (
+          <button
+            className="wt-iconbtn"
+            title="收起仓库栏"
+            aria-label="收起仓库栏"
+            aria-expanded="true"
+            onClick={onCollapse}
+          >
+            <Icon name="collapse" size={15} />
+          </button>
+        )}
       </div>
       <div className="wt-railscroll">
         <button

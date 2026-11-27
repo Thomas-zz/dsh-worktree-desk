@@ -23,6 +23,8 @@
     color-mix(in srgb, var(--wt-ink) 6%, transparent)
   );
   --wt-raised: color-mix(in srgb, var(--wt-ink) 5.5%, transparent);
+  /* 分组头的底色要吸顶盖住下面滚过的行，所以不能透明。 */
+  --wt-band: color-mix(in srgb, var(--wt-ink) 5.5%, var(--wt-bg));
   --wt-raised-2: color-mix(in srgb, var(--wt-ink) 10%, transparent);
   --wt-selected: color-mix(in srgb, var(--wt-accent) 11%, transparent);
   --wt-selected-2: color-mix(in srgb, var(--wt-accent) 18%, transparent);
@@ -114,7 +116,15 @@
   font-family: var(--wt-mono);
   letter-spacing: -0.01em;
 }
-.wt-wrap :is(.wt-list, .wt-detail, .wt-railscroll) {
+.wt-wrap
+  :is(
+    .wt-list,
+    .wt-dbody,
+    .wt-dhead,
+    .wt-railscroll,
+    .wt-diffstack,
+    .wt-treepanel .wt-files
+  ) {
   scrollbar-width: thin;
   scrollbar-color: var(--wt-line-2) transparent;
   overscroll-behavior: contain;
@@ -293,7 +303,8 @@
   gap: 5px;
   flex: none;
   height: 28px;
-  padding: 0 10px;
+  /* 左右各留 9px：清单上方的筛选片多了「审查过」，面板宽 980 左右时还要和工具筛选放得下同一行。 */
+  padding: 0 9px;
   border: 1px solid var(--wt-line-2);
   border-radius: 999px;
   background: var(--wt-surface);
@@ -329,18 +340,161 @@
   color: inherit;
   opacity: 0.72;
 }
-.wt-scope {
+/* 仓库下拉的触发按钮：外形和旁边的筛选标签一致。 */
+.wt-pick {
+  position: relative;
+  display: inline-flex;
   flex: none;
   max-width: 190px;
   min-width: 0;
+}
+.wt-pickname {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wt-pickbtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
   height: 28px;
-  padding: 0 8px;
+  /* 右边留给折叠箭头；箭头绝对定位在右端，不参与名称的收缩。 */
+  padding: 0 25px 0 10px;
   border: 1px solid var(--wt-line-2);
   border-radius: 999px;
   background: var(--wt-surface);
   color: var(--wt-ink);
   font-size: 12.5px;
-  text-overflow: ellipsis;
+}
+.wt-pickbtn:hover {
+  border-color: var(--wt-ink-3);
+}
+.wt-pickbtn[aria-expanded='true'] {
+  border-color: var(--wt-accent);
+}
+.wt-pickbtn .wt-icon {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  color: var(--wt-ink-3);
+  transform: translateY(-50%);
+}
+/* 选中了某个仓库时，名称给「×」让出位置（× 占右边 24–42px），不会被压住。 */
+.wt-pick:has(.wt-pickclear) .wt-pickname {
+  margin-right: 21px;
+}
+/* 选中了某个仓库时，折叠箭头左边多一个「×」，点它回到全部仓库。 */
+.wt-pickclear {
+  position: absolute;
+  top: 50%;
+  right: 24px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: var(--wt-ink-3);
+  transform: translateY(-50%);
+}
+.wt-pickclear:hover {
+  background: var(--wt-raised-2);
+  color: var(--wt-ink);
+}
+/* 展开的仓库菜单：先盖住整个面板（点外面收起），菜单贴着触发按钮。
+   菜单画在面板根节点上，不挂在会横向滚动的筛选条下面。 */
+.wt-picklayer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+}
+.wt-pickmenu {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--wt-line);
+  border-radius: var(--wt-r);
+  background: var(--wt-surface);
+  box-shadow: var(--wt-shadow);
+  animation: wt-pop 0.12s ease-out;
+}
+.wt-picksearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  height: 38px;
+  padding: 0 6px 0 12px;
+  border-bottom: 1px solid var(--wt-line);
+  color: var(--wt-ink-3);
+}
+.wt-picksearch input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--wt-ink);
+  font-size: 13px;
+}
+.wt-picksearch input::placeholder {
+  color: var(--wt-ink-3);
+}
+.wt-picklist {
+  position: relative; /* 选项的位置以它为准，滚到可见范围用 */
+  flex: 1;
+  min-height: 0;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.wt-pickopt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--wt-r-sm);
+  color: var(--wt-ink-2);
+  font-size: 12.5px;
+  cursor: default;
+  user-select: none;
+}
+.wt-pickopt.is-active {
+  background: var(--wt-hover);
+  color: var(--wt-ink);
+}
+.wt-pickopt[aria-selected='true'] {
+  color: var(--wt-ink);
+  font-weight: 600;
+}
+/* 对勾只画在当前选中的那一项前面，其余项留同样宽的位置，名称对齐。 */
+.wt-pickopt .wt-icon {
+  color: var(--wt-accent);
+  visibility: hidden;
+}
+.wt-pickopt[aria-selected='true'] .wt-icon {
+  visibility: visible;
+}
+.wt-pickopt .wt-pickname {
+  flex: 0 1 auto;
+}
+.wt-pickopt b {
+  flex: none;
+  margin-left: auto;
+  color: var(--wt-ink-3);
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.wt-pickempty {
+  padding: 20px 12px;
+  color: var(--wt-ink-3);
+  font-size: 12.5px;
+  text-align: center;
 }
 
 /* ---------- 主体三栏 ---------- */
@@ -362,13 +516,19 @@
 }
 .wt-railhead {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   flex: none;
-  padding: 14px 16px 6px 24px;
+  gap: 6px;
+  padding: 8px 10px 4px 16px;
   color: var(--wt-ink-3);
   font-size: 11.5px;
   letter-spacing: 0.04em;
+}
+/* 收起仓库栏的按钮靠到最右边，和清单里各行的高度对齐。 */
+.wt-railhead > .wt-iconbtn {
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
 }
 .wt-railhead h2 {
   font-size: inherit;
@@ -438,16 +598,44 @@
 
 /* ---------- 清单 ---------- */
 .wt-list {
+  /* 工作树行比仓库名再往右缩进多少；名称左缘到清单左缘的距离。 */
+  --wt-child: 12px;
+  --wt-name-x: 52px;
   container: list / inline-size;
   flex: 1 1 auto;
   min-width: 0;
   overflow-y: auto;
   background: var(--wt-bg);
 }
+/* 并排时清单占固定的宽度（可以拖，宽度记在 --list-w），其余都给详情。
+   面板太窄时清单让出一些，但详情至少留 360px。 */
 .wt-wrap[data-layout='split'] .wt-list {
-  flex: 1 1 46%;
-  max-width: 640px;
+  flex: 0 1 auto;
+  width: var(--list-w, 340px);
+  min-width: 240px;
+  max-width: min(520px, calc(100% - 360px));
   border-right: 1px solid var(--wt-line);
+}
+/* 清单和详情之间的分隔线：压在清单的右边框上，拖着调清单宽度。 */
+.wt-resizer {
+  position: relative;
+  z-index: 10;
+  flex: none;
+  width: 7px;
+  margin: 0 -4px 0 -3px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.wt-resizer::after {
+  content: '';
+  position: absolute;
+  inset: 0 2px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background-color 0.12s;
+}
+.wt-resizer:is(:hover, :focus-visible, [data-dragging])::after {
+  background: var(--wt-accent);
 }
 .wt-listhead {
   position: sticky;
@@ -455,23 +643,27 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 12px 0 8px;
+  gap: 6px;
+  height: 40px;
+  padding: 0 6px 0 4px;
   border-bottom: 1px solid var(--wt-line);
   background: var(--wt-bg);
+}
+.wt-listhead > .wt-iconbtn {
+  width: 26px;
+  height: 26px;
 }
 .wt-listtitle {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  margin-left: 8px;
+  margin-left: 12px;
   color: var(--wt-ink-2);
   font-size: 12.5px;
   white-space: nowrap;
 }
 .wt-listtitle b {
-  margin-left: 4px;
+  margin-left: 2px;
   color: var(--wt-ink);
   font-size: 16px;
   font-weight: 650;
@@ -565,25 +757,17 @@
   background: var(--wt-hover);
   color: var(--wt-ink);
 }
+/* 读取进度贴在清单头下沿，不占高度：后台重读时内容已经画着，不能上下跳。 */
 .wt-progress {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 20px;
-  border-bottom: 1px solid var(--wt-line);
-  color: var(--wt-ink-3);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.wt-progress i {
-  position: relative;
-  flex: 1;
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
   height: 2px;
   overflow: hidden;
-  border-radius: 2px;
-  background: var(--wt-line);
+  pointer-events: none;
 }
-.wt-progress i::after {
+.wt-progress::after {
   content: '';
   position: absolute;
   inset: 0 auto 0 0;
@@ -592,11 +776,23 @@
   background: var(--wt-accent);
   transition: width 0.25s;
 }
+/* 只给读屏软件看的文字。 */
+.wt-vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* 自占一行：上面离清单头、下面离仓库标题都留出空白，不贴着任何一边。 */
 .wt-filternote {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
-  margin: 8px 0 0 20px;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin: 10px 12px 14px 20px;
   padding: 3px 10px;
   border-radius: 999px;
   background: var(--wt-selected);
@@ -604,19 +800,30 @@
   font-size: 12px;
 }
 .wt-rows {
-  padding-bottom: 28px;
+  padding-bottom: 20px;
+}
+/* 只看一个仓库时上面没有仓库头，行回到最左，和清单头对齐。 */
+.wt-rows[data-flat] {
+  --wt-child: 0px;
+  --wt-name-x: 40px;
 }
 
-/* 分组头 */
+/* 分组：仓库是标题，工作树是挂在它下面的条目。
+   标题带一条底色横贯整行、字最大最粗；条目缩进一格、字重较轻。列表往下滚时标题吸在清单头下面，
+   随时看得出眼前的工作树属于哪个仓库。 */
 .wt-group {
-  padding-bottom: 2px;
+  padding-bottom: 8px;
 }
 .wt-grouphead {
+  position: sticky;
+  top: 40px; /* 清单头的高度 */
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 36px;
-  padding: 0 12px 0 8px;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  background: var(--wt-band);
 }
 .wt-group-toggle {
   display: grid;
@@ -638,27 +845,64 @@
 .wt-group-toggle .wt-icon.is-open {
   transform: none;
 }
+/* 仓库名最多占到「总宽减去折叠按钮、间距、工作树数、分支入口和摘要的渐隐留白」，
+   这样再长的名字也不会把右侧的分支入口挤出清单。 */
 .wt-groupname {
-  max-width: 48%;
+  flex: 0 0 auto;
+  max-width: min(46%, calc(100% - 198px));
+  min-width: 0;
   overflow: hidden;
   color: var(--wt-ink);
-  font-size: 12.5px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 .wt-groupcount {
+  flex: none;
   color: var(--wt-ink-3);
   font-size: 11.5px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+/* 地方不够时只有摘要让位：仓库名和分支入口不收缩，摘要右侧留 14px 给渐隐，
+   被挤掉的部分淡出去而不是切一半。 */
 .wt-groupsummary {
   display: flex;
+  flex: 0 1 auto;
   align-items: center;
   gap: 12px;
   min-width: 0;
+  padding-right: 14px;
   overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - 14px),
+    transparent
+  );
+  mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
+}
+.wt-branchlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 24px;
+  margin-right: -6px;
+  padding: 0 6px;
+  border-radius: var(--wt-r-sm);
+  color: var(--wt-ink-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.wt-branchlink b {
+  color: var(--wt-ink-2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.wt-branchlink:hover {
+  background: var(--wt-raised-2);
+  color: var(--wt-ink);
 }
 .wt-count {
   display: inline-flex;
@@ -706,23 +950,18 @@
   background: color-mix(in srgb, var(--wt-danger) 12%, transparent);
 }
 
-/* 工作树行，固定两行：第一行 名称 + 按钮，第二行 工单、状态、上游、时间 + 关联工具。
-   第一列 24px 与分组头的折叠按钮同宽，名称左缘因此对齐。
+/* 工作树行只有一行：状态点、名称（后面跟「主目录」这类标记），行尾是要动手的数字（↑ 未推送、↓ 落后、改动数、异常）。
+   关联工具和最近改动时间排在数字前面，清单够宽才出现（见文件末尾按清单宽度的规则）。
+   第一列 24px 与分组头的折叠按钮同宽同位：状态点正好挂在折叠按钮下面；名称再往右缩进 --wt-child，
+   一眼看得出是挂在仓库名下面的。
    路径不放进行里：窄的时候只会剩下最后一段，没有信息量；详情栏和悬停提示里有完整路径。 */
 .wt-row {
   position: relative;
-  display: grid;
-  grid-template-columns:
-    24px max-content minmax(0, 1fr) max-content 26px
-    26px;
-  grid-template-areas:
-    'dot main main main go menu'
-    'dot ticket meta meta tools tools';
+  display: flex;
   align-items: center;
-  column-gap: 8px;
-  row-gap: 3px;
-  min-height: 38px;
-  padding: 7px 8px;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
   cursor: default;
   user-select: none;
 }
@@ -743,47 +982,108 @@
 .wt-row.is-stale .wt-name {
   color: var(--wt-ink-2);
 }
-.wt-row > .wt-dot {
-  grid-area: dot;
-  align-self: start;
-  margin-top: 6px;
+/* 状态点的位置固定：正好挂在仓库标题的折叠按钮下面；没有点的时候这一格空着，名称不挪位。 */
+.wt-dotcell {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 100%;
 }
 .wt-row > .wt-main {
-  grid-area: main;
+  flex: 1 1 auto;
+  padding-left: var(--wt-child);
 }
-.wt-row > .wt-meta {
+.wt-main .wt-tag {
+  margin-left: 0;
+}
+.wt-tag-lock {
+  padding: 0 4px;
+}
+/* 关联工具、最近改动时间：次要信息，排在数字前面。 */
+.wt-row > .wt-side {
   display: flex;
-  grid-area: meta;
+  flex: none;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+  gap: 8px;
 }
-.wt-row > .wt-meta > * {
-  text-align: left;
+/* 这一行能做的事（新开 DSH 会话、更多）：平时宽度为 0，停在上面、选中或键盘走到时才出来，不占地方。
+   按钮仍在排版里、能被 Tab 到，只是被裁掉；出来时挤的是名称的省略号，右边的数字不动。 */
+.wt-row > .wt-acts {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
 }
-.wt-row > .wt-meta > .wt-time {
-  margin-left: auto;
+.wt-row:is(:hover, .is-selected, :focus-within) > .wt-acts {
+  width: auto;
+  opacity: 1;
 }
-/* 没设上游很常见，行里不占位置；详情里照常显示。 */
-.wt-row > .wt-meta > .wt-up[data-tone='muted'] {
-  display: none;
+@media (hover: none) {
+  /* 触屏没有悬停：每一行的按钮常驻（上下堆叠时也没有「选中的行」可以依靠）。 */
+  .wt-row > .wt-acts {
+    width: auto;
+    opacity: 1;
+  }
 }
-.wt-row > .wt-ticket {
-  grid-area: ticket;
+/* 行尾的数字：等宽字体，同一列上下对齐。颜色和标题里对应的那句话一致。 */
+.wt-marks {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  color: var(--wt-ink-3);
+  font-family: var(--wt-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.wt-row > .wt-tools {
-  grid-area: tools;
-  justify-content: flex-end;
-  padding-left: 12px;
+.wt-marks > b {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
-.wt-row > .wt-go {
-  grid-area: go;
+.wt-marks > b[data-k='ahead'] {
+  color: var(--wt-accent);
 }
-.wt-row > .wt-menu-btn {
-  grid-area: menu;
+.wt-marks > b[data-k='behind'],
+.wt-marks > b[data-k='dirty'] {
+  color: var(--wt-warn);
 }
-.wt-row .wt-tag:not(.wt-tag-main) {
-  display: none;
+.wt-marks > b[data-k='trouble'] {
+  color: var(--wt-danger);
+}
+.wt-marks > b[data-k='stale'] {
+  font-family: var(--wt-font);
+  font-weight: 500;
+}
+/* AI 审查的结论：按结论着色（没有问题 / 有建议 / 有必须处理的），还在审的是转圈。
+   审查之后改动变了就淡一些。 */
+.wt-marks > b[data-k='review'] {
+  color: var(--wt-ink-3);
+}
+.wt-marks > b[data-k='review'][data-tone='running'] {
+  color: var(--wt-accent);
+}
+.wt-marks > b[data-k='review'][data-tone='ok'] {
+  color: var(--wt-ok);
+}
+.wt-marks > b[data-k='review'][data-tone='warn'] {
+  color: var(--wt-warn);
+}
+.wt-marks > b[data-k='review'][data-tone='danger'] {
+  color: var(--wt-danger);
+}
+.wt-marks > b[data-k='review'][data-stale] {
+  opacity: 0.6;
+}
+.wt-marks > b[data-k='review'] .wt-spinner-sm {
+  width: 11px;
+  height: 11px;
+  border-width: 1.5px;
 }
 .wt-dot {
   justify-self: center;
@@ -802,10 +1102,7 @@
 .wt-dot[data-tone='accent'] {
   background: var(--wt-accent);
 }
-.wt-dot:is([data-tone='clean'], [data-tone='muted']) {
-  background: transparent;
-  box-shadow: inset 0 0 0 1.5px var(--wt-line-2);
-}
+/* 干净、落后的行不画点（组件里根本不渲染这个元素），这里不留空心圆。 */
 .wt-main {
   display: flex;
   align-items: center;
@@ -832,9 +1129,13 @@
   min-width: 0;
   overflow: hidden;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+/* 分支名里斜杠前面那段只是分类（feat/、codex/），调淡，视线落在后面真正区分它的那段上。 */
+.wt-ns {
+  color: var(--wt-ink-3);
 }
 .wt-tag {
   display: inline-flex;
@@ -856,38 +1157,6 @@
 .wt-tag.is-muted {
   background: transparent;
   box-shadow: inset 0 0 0 1px var(--wt-line-2);
-}
-.wt-state {
-  color: var(--wt-ink-3);
-  font-size: 12px;
-  white-space: nowrap;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.wt-state[data-tone='warn'] {
-  color: var(--wt-warn);
-}
-.wt-state[data-tone='danger'] {
-  color: var(--wt-danger);
-}
-.wt-state[data-tone='accent'] {
-  color: var(--wt-accent);
-}
-.wt-state[data-tone='clean'] {
-  color: var(--wt-ink-3);
-}
-.wt-up {
-  color: var(--wt-ink-3);
-  font-family: var(--wt-mono);
-  font-size: 11.5px;
-  white-space: nowrap;
-  text-align: right;
-}
-.wt-up[data-tone='accent'] {
-  color: var(--wt-accent);
-}
-.wt-up[data-tone='warn'] {
-  color: var(--wt-warn);
 }
 .wt-tools {
   display: flex;
@@ -911,9 +1180,7 @@
   font-style: normal;
   font-weight: 700;
 }
-.wt-tool em {
-  display: none;
-}
+
 .wt-tool[data-live='true'] {
   background: var(--wt-selected);
   color: var(--wt-accent);
@@ -926,30 +1193,18 @@
   font-variant-numeric: tabular-nums;
 }
 .wt-go,
-.wt-row > .wt-menu-btn {
+.wt-row > .wt-acts > .wt-menu-btn {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--wt-r-sm);
   color: var(--wt-ink-3);
 }
-.wt-go {
-  opacity: 0;
-}
-.wt-row:is(:hover, .is-selected, :focus-within) .wt-go {
-  opacity: 1;
-}
-.wt-row :is(.wt-go, .wt-menu-btn):hover {
+.wt-row .wt-acts :is(.wt-go, .wt-menu-btn):hover {
   background: var(--wt-surface);
   color: var(--wt-ink);
   box-shadow: 0 0 0 1px var(--wt-line-2);
-}
-@media (hover: none) {
-  /* 触屏没有悬停：常驻显示。 */
-  .wt-go {
-    opacity: 1;
-  }
 }
 
 /* 折叠条、占位、空行 */
@@ -960,7 +1215,7 @@
   width: calc(100% - 16px);
   min-height: 34px;
   margin: 2px 8px 4px;
-  padding: 0 10px 0 32px;
+  padding: 0 10px 0 calc(var(--wt-name-x) - 8px);
   border-radius: var(--wt-r-sm);
   color: var(--wt-ink-3);
   font-size: 12px;
@@ -995,12 +1250,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 12px 6px 40px;
+  padding: 0 12px 6px var(--wt-name-x);
 }
 .wt-skeleton {
   display: grid;
-  gap: 12px;
-  padding: 6px 20px 14px 40px;
+  gap: 18px;
+  padding: 9px 20px 11px var(--wt-name-x);
 }
 .wt-skeleton span {
   display: block;
@@ -1020,6 +1275,9 @@
     background-position: -200% 0;
   }
 }
+.wt-group > .wt-emptyline {
+  padding-left: var(--wt-name-x);
+}
 .wt-emptyline {
   display: flex;
   flex-wrap: wrap;
@@ -1033,7 +1291,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 2px 8px 8px 40px;
+  margin: 2px 8px 8px var(--wt-name-x);
   padding: 6px 10px;
   border-radius: var(--wt-r-sm);
   background: color-mix(in srgb, var(--wt-danger) 9%, transparent);
@@ -1053,29 +1311,78 @@
 }
 
 /* ---------- 详情栏 ---------- */
+/* 表头（名称、路径、操作）和页签留在顶上，正文自己滚动：看差异时操作一直够得着。 */
 .wt-detail {
   container: detail / inline-size;
-  flex: 1 1 54%;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   min-width: 0;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--wt-surface);
 }
 .wt-dinner {
-  max-width: 1200px;
-  padding-bottom: 28px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
-.wt-dinner-flush {
-  max-width: none;
-  padding-bottom: 0;
-}
+/* 窗口很矮时表头自己让位：它可以缩短并在内部滚动，正文至少留一屏可用的高度。 */
 .wt-dhead {
-  padding: 16px 20px 0;
+  flex: 0 1 auto;
+  min-height: 64px;
+  overflow-y: auto;
+  padding: 12px 20px 0;
 }
+.wt-dtabs {
+  flex: none;
+}
+.wt-dbody {
+  position: relative;
+  display: flex;
+  flex: 1 1 160px;
+  flex-direction: column;
+  min-height: 120px;
+  overflow-y: auto;
+}
+/* 页签的内容。没显示的那个页签从排版里拿出来、藏起来，尺寸照旧：差异区量好的宽度和滚动位置都还在，
+   切回来不用重读。 */
+.wt-tabpane {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.wt-tabpane:not([data-on]) {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.wt-tabpane > .wt-emptyline {
+  flex: none;
+}
+.wt-panetext {
+  padding: 8px 20px 0;
+}
+/* 失效登记的详情没有文件区：正文自己带左右留白。 */
+.wt-dbody.is-padded {
+  padding: 0 20px 20px;
+}
+/* 名称这一行放不下时，「要动手的事」整组换到下一行，不把名称挤没了。 */
 .wt-dtitle {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   min-width: 0;
+}
+.wt-todo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-left: auto;
 }
 .wt-dtitle .wt-back {
   margin-left: -6px;
@@ -1117,33 +1424,112 @@
   color: var(--wt-ink-2);
   font-size: 12px;
 }
+/* 最近改动的时间靠在路径那一行的最右边（清单行窄的时候不显示它，这里一定有）。 */
+.wt-dwhen {
+  flex: none;
+  color: var(--wt-ink-3);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* 最近一次提交：短号、时间、标题，只占一行，放不下时省略（悬停看全文）。 */
 .wt-dcommit {
-  display: -webkit-box;
-  margin-top: 10px;
-  overflow: hidden;
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
   color: var(--wt-ink-2);
   font-size: 12.5px;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
+}
+.wt-dcommit > code,
+.wt-dcommit > span:first-child {
+  flex: none;
+  color: var(--wt-ink-3);
+  font-size: 11.5px;
 }
 .wt-dcommit time {
-  margin-right: 8px;
+  flex: none;
   color: var(--wt-ink-3);
   font-variant-numeric: tabular-nums;
 }
+.wt-dsubject {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 操作栏：一行，按轻重分组（见 detail.jsx 的 ActionBar）。组与组之间隔开，组里的按钮首尾相接。 */
 .wt-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin-top: 14px;
+  gap: 6px 10px;
+  margin-top: 10px;
+}
+.wt-agroup {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+.wt-agroup > .wt-btn {
+  padding: 0 9px;
+  border-radius: 0;
+}
+.wt-agroup > .wt-btn:first-child {
+  border-radius: var(--wt-r) 0 0 var(--wt-r);
+}
+.wt-agroup > .wt-btn:last-child {
+  border-radius: 0 var(--wt-r) var(--wt-r) 0;
+}
+.wt-agroup > .wt-btn + .wt-btn {
+  margin-left: -1px;
+}
+/* 同一组里两个实心按钮之间隔一道浅线。 */
+.wt-agroup > .wt-btn.is-primary + .wt-btn.is-primary {
+  border-left-color: color-mix(in srgb, var(--wt-bg) 30%, transparent);
+}
+.wt-agroup > .wt-btn:hover:not(:disabled) {
+  position: relative;
+  z-index: 1;
+}
+.wt-sync .wt-spinner-sm {
+  margin-left: 6px;
+}
+/* 「到别的应用里去」的图标和「更多」靠到操作栏最右边。 */
+.wt-apps {
+  gap: 2px;
+  margin-left: auto;
+}
+.wt-appbtn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--wt-line-2);
+  background: var(--wt-surface);
+  color: var(--wt-ink-2);
+}
+.wt-appbtn:hover:not(:disabled) {
+  border-color: var(--wt-ink-3);
+  background: var(--wt-raised);
+  color: var(--wt-ink);
+}
+.wt-spinner-sm {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+.wt-sync .wt-btn b {
+  margin-left: 2px;
+  color: var(--wt-accent);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .wt-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 11px;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
   border: 1px solid var(--wt-line-2);
   border-radius: var(--wt-r);
   background: var(--wt-surface);
@@ -1166,6 +1552,10 @@
   background: var(--wt-ink);
   opacity: 0.86;
 }
+.wt-btn.is-icon {
+  width: 32px;
+  padding: 0;
+}
 .wt-btn.is-danger {
   border-color: color-mix(in srgb, var(--wt-danger) 45%, transparent);
   color: var(--wt-danger);
@@ -1177,50 +1567,85 @@
 .wt-btn:disabled {
   opacity: 0.55;
 }
+/* 「更多」是宿主画的按钮：这里把它和左边的应用图标按钮做成一模一样的尺寸、圆角、底色和图标大小。 */
 .wt-btn-more {
-  width: 30px;
-  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 1px solid var(--wt-line-2);
-  border-radius: var(--wt-r);
+  border-radius: var(--wt-r-sm);
+  background: var(--wt-surface);
   color: var(--wt-ink-2);
+}
+.wt-btn-more > svg {
+  width: 16px;
+  height: 16px;
 }
 .wt-btn-more:hover:not(:disabled) {
   border-color: var(--wt-ink-3);
   background: var(--wt-raised);
   box-shadow: none;
 }
-.wt-facts {
+/* 需要动手的事：字重一些，颜色和清单行尾的数字一致。 */
+.wt-fstate {
+  color: var(--wt-ink-3);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.wt-fstate[data-tone='accent'] {
+  color: var(--wt-accent);
+}
+.wt-fstate[data-tone='warn'] {
+  color: var(--wt-warn);
+}
+/* 页签右边的参考信息（关联工具、分支起点、上游）：排成一行，放不下的部分淡出，不另占一行。 */
+.wt-refs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2px 14px;
-  margin-top: 10px;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 2px 12px;
+  min-width: 0;
+  margin-left: 12px;
+  padding-right: 14px;
+  overflow: hidden;
   color: var(--wt-ink-3);
   font-size: 11.5px;
+  white-space: nowrap;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - 14px),
+    transparent
+  );
+  mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
 }
-.wt-facts i {
+.wt-refs i {
   margin-right: 4px;
   font-style: normal;
 }
-.wt-facts code {
+.wt-refs code {
   color: var(--wt-ink-2);
 }
 .wt-dtabs {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: 14px;
+  margin-top: 8px;
   padding: 0 20px;
   border-bottom: 1px solid var(--wt-line);
 }
 .wt-dtabs [role='tab'] {
   position: relative;
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 5px;
   height: 36px;
   color: var(--wt-ink-3);
   font-size: 12.5px;
+  white-space: nowrap;
 }
 .wt-dtabs [role='tab']:hover {
   color: var(--wt-ink);
@@ -1259,6 +1684,10 @@
   background: color-mix(in srgb, var(--wt-danger) 10%, transparent);
   color: var(--wt-danger);
 }
+.wt-notice.is-ok {
+  background: color-mix(in srgb, var(--wt-ok) 14%, transparent);
+  color: var(--wt-ok);
+}
 .wt-dtext {
   color: var(--wt-ink-2);
   font-size: 12.5px;
@@ -1270,13 +1699,6 @@
 }
 
 /* 文件改动 */
-.wt-filebar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 8px;
-  padding: 10px 20px 8px;
-}
 .wt-minisearch {
   display: inline-flex;
   align-items: center;
@@ -1350,10 +1772,9 @@
 }
 .wt-file {
   grid-template-columns: 22px minmax(0, 1fr) max-content max-content 14px;
-  min-height: 32px;
+  min-height: 30px;
 }
-.wt-file:hover,
-.wt-file.is-open {
+.wt-file:hover {
   background: var(--wt-hover);
 }
 .wt-badge {
@@ -1427,50 +1848,43 @@
 .wt-file-chevron.is-open {
   transform: none;
 }
-.wt-file-chevron.is-away {
-  transform: none;
-}
 
-/* 就地差异 */
+/* 差异。不能给外框加 overflow: hidden，否则它会成为粘性定位的参照，标题粘不到顶上。 */
 .wt-diffbox {
-  margin: 2px 0 8px calc(8px + var(--depth, 0) * 16px + 8px);
-  border: 1px solid var(--wt-line);
-  border-radius: var(--wt-r);
   background: var(--wt-bg);
 }
-.wt-dinner-flush .wt-diffbox {
-  margin: 0;
-  border: 0;
-  border-radius: 0;
-}
-/* 不能给外框加 overflow: hidden，否则它会成为粘性定位的参照，标题粘不到详情栏顶部。
-   圆角由首尾两个子元素各自负责。 */
 .wt-diffsticky {
   position: sticky;
-  top: 0;
+  top: 36px; /* 让开文件区顶上那条工具栏 */
   z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+  padding-right: 8px;
   border-bottom: 1px solid var(--wt-line);
-  border-radius: calc(var(--wt-r) - 1px) calc(var(--wt-r) - 1px) 0 0;
   background: var(--wt-bg);
-}
-.wt-diffbox > :last-child {
-  border-radius: 0 0 calc(var(--wt-r) - 1px) calc(var(--wt-r) - 1px);
-}
-.wt-dinner-flush .wt-diffbox > :last-child {
-  border-radius: 0;
-}
-.wt-dinner-flush .wt-diffsticky {
-  border-radius: 0;
 }
 .wt-diffhead {
   display: flex;
+  /* 以标题的完整宽度参加换行：标题和工具放不下一行时工具整组换行，不把标题挤成省略号。 */
+  flex: 1 1 auto;
   align-items: center;
   gap: 8px;
-  min-height: 38px;
-  padding: 0 12px 0 6px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 0 0 6px;
 }
 .wt-diffhead .wt-back {
   margin-left: 0;
+}
+/* 重命名的文件：标题后面标出原文件名。 */
+.wt-difffrom {
+  flex: none;
+  color: var(--wt-ink-3);
+  font-family: var(--wt-mono);
+  font-size: 11.5px;
 }
 .wt-difftitle {
   flex: 1;
@@ -1480,12 +1894,15 @@
 }
 .wt-difftools {
   display: flex;
+  flex: 0 1 auto;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
-  padding: 6px 12px;
+  justify-content: flex-end;
+  gap: 2px 8px;
+  min-width: 0;
+  padding: 4px 0;
 }
-.wt-diffnote {
+.wt-difflayer {
   color: var(--wt-ink-3);
   font-size: 11.5px;
   white-space: nowrap;
@@ -1502,9 +1919,10 @@
 .wt-diffscroll[data-wrap='true'] .wt-diff {
   min-width: 0;
 }
+/* 不用 content-visibility：它给没画过的块先按 600px 估高度，卡片滚进来时再缩回去，
+   后面的内容会往上跳。差异本来就只在滚到附近才挂上（见 files.jsx 的 Near），挂上时就是真实高度。 */
 .wt-hunk {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 600px;
+  content-visibility: visible;
 }
 .wt-hunk + .wt-hunk {
   border-top: 4px solid var(--wt-line);
@@ -1740,20 +2158,63 @@
 }
 
 /* ---------- 本地分支 ---------- */
+/* 这一段在只看一个仓库时排在清单末尾，是和工作树同一层的一组：分组头和仓库分组头一个样子，
+   滚上去时吸在清单头下面；里面的内容缩进到工作树名称的那一列。 */
+.wt-branchfold {
+  padding-bottom: 4px;
+}
+.wt-branchhead .wt-groupname {
+  font-family: var(--wt-mono);
+  font-size: 12.5px;
+}
+.wt-branchhead .wt-groupname b {
+  margin-left: 5px;
+  color: var(--wt-ink-3);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* 清单窄时仓库分组头的摘要会让位；这一段的不让：「几个检出了、几个没有」正是要看的那句。 */
+.wt-groupsummary.wt-branchsum {
+  display: flex;
+}
+.wt-branchsum .wt-count {
+  gap: 2px;
+}
 .wt-branchbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px 10px 20px;
-  border-bottom: 1px solid var(--wt-line);
+  padding: 8px 8px 4px calc(var(--wt-name-x) - 12px);
 }
-.wt-branchsearch {
-  flex: 1 1 200px;
-  max-width: 320px;
+.wt-branchnote {
+  padding: 2px 8px 2px calc(var(--wt-name-x) - 4px);
 }
 .wt-branches {
-  padding: 4px 12px;
+  padding: 4px 8px 2px calc(var(--wt-name-x) - 12px);
+}
+.wt-branchlist > .wt-emptyline {
+  padding-left: var(--wt-name-x);
+}
+.wt-branchlist > .wt-dtext:not(.wt-branchnote) {
+  padding: 6px 8px 4px var(--wt-name-x);
+}
+.wt-branchlist .wt-more {
+  margin-left: calc(var(--wt-name-x) - 40px);
+}
+/* 清单很窄时先舍掉「已并入」的数（它只在展开后的筛选里有用）。 */
+@container list (max-width: 359px) {
+  .wt-branchmerged {
+    display: none;
+  }
+}
+/* 清单头上的「本地分支 N」：后面还有路径，不留出贴边的负边距。 */
+.wt-listhead .wt-branchlink {
+  margin-right: 0;
+}
+.wt-listhead .wt-listtitle + .wt-branchlink {
+  margin-left: 2px;
 }
 .wt-branch {
   padding: 7px 8px;
@@ -1825,6 +2286,63 @@
 }
 .wt-branchlist > .wt-dtext {
   padding: 8px 20px 0;
+}
+
+/* 「本仓库的审查提示词」：输入框、文件位置、默认提示词。 */
+.wt-promptbox {
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--wt-line-2);
+  border-radius: var(--wt-r);
+  background: var(--wt-bg);
+  color: var(--wt-ink);
+  font: 12.5px/1.65 var(--wt-mono);
+  resize: vertical;
+}
+.wt-promptbox:focus {
+  border-color: var(--wt-accent);
+  outline: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wt-accent) 14%, transparent);
+}
+.wt-promptbox::placeholder {
+  color: var(--wt-ink-3);
+}
+.wt-promptbox:disabled {
+  opacity: 0.6;
+}
+.wt-promptmeta {
+  margin-top: 6px;
+}
+.wt-promptmeta code {
+  word-break: break-all;
+}
+.wt-promptdefault {
+  margin-top: 10px;
+  color: var(--wt-ink-2);
+  font-size: 12.5px;
+}
+.wt-promptdefault summary {
+  cursor: pointer;
+  color: var(--wt-ink-3);
+}
+.wt-promptdefault pre {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: var(--wt-r-sm);
+  background: var(--wt-raised);
+  color: var(--wt-ink-2);
+  font: 12px/1.6 var(--wt-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.wt-promptdefault p {
+  margin-top: 8px;
+}
+.wt-promptdefault p:first-of-type {
+  margin-top: 6px;
 }
 
 /* ---------- 对话框 ---------- */
@@ -1923,15 +2441,38 @@
   }
 }
 
-/* ---------- 按清单宽度：两行式紧凑行 ---------- */
+/* ---------- 按清单宽度：次要信息依次让位 ---------- */
 @container list (max-width: 620px) {
   .wt-listpath {
     display: none;
   }
 }
-
-/* 清单更窄时（并排布局的左栏或手机）：清单头只留必要的。 */
-@container list (max-width: 400px) {
+/* 清单窄时仓库行只留名称和「分支 N」：每棵工作树自己的状态就在下面几行。 */
+@container list (max-width: 479px) {
+  .wt-groupsummary {
+    display: none;
+  }
+}
+@container list (max-width: 419px) {
+  .wt-groupcount {
+    display: none;
+  }
+}
+/* 工作树行：最近改动时间先让位，再是不在活动的关联工具，最后是名称后面的标记。
+   右边要动手的数字始终都在。 */
+@container list (max-width: 449px) {
+  .wt-row > .wt-side > .wt-time {
+    display: none;
+  }
+}
+@container list (max-width: 399px) {
+  .wt-tool:not([data-live]) {
+    display: none;
+  }
+  /* 只看一个仓库时页签和排序放不下一行，排序先让位（把清单拖宽就回来）。 */
+  .wt-listhead[data-scope='one'] .wt-sort {
+    display: none;
+  }
   .wt-listsub {
     display: none;
   }
@@ -1939,22 +2480,72 @@
     display: none;
   }
   .wt-listtitle {
-    margin-left: 0;
+    margin-left: 4px;
   }
   .wt-listhead {
-    padding-left: 12px;
+    padding-left: 8px;
+  }
+}
+@container list (max-width: 359px) {
+  .wt-main .wt-tag {
+    display: none;
+  }
+}
+@container list (max-width: 339px) {
+  .wt-listunit {
+    display: none;
   }
 }
 
-/* ---------- 按详情栏宽度：图标式按钮、收窄留白 ---------- */
-@container detail (max-width: 560px) {
-  .wt-dhead {
-    padding: 12px 14px 0;
+/* ---------- 按详情栏宽度 ---------- */
+/* 「到别的应用里去」的图标先让位：它们在「更多」和右键菜单里都有。
+   详情栏不到 680px 时，带着「AI 审查」和带数字的「推送」放不下一行——宁可整栏保持一行。 */
+@container detail (max-width: 679px) {
+  .wt-appbtn {
+    display: none;
   }
-  .wt-dtabs,
-  .wt-filebar {
+}
+@container detail (max-width: 559px) {
+  .wt-dhead {
+    padding: 10px 14px 0;
+  }
+  /* 页签右边的参考信息和页签放不下一行：换到页签下面，仍然看得见。 */
+  .wt-dtabs {
+    flex-wrap: wrap;
     padding-right: 14px;
     padding-left: 14px;
+  }
+  .wt-dbody.is-padded {
+    padding: 0 14px 14px;
+  }
+  .wt-review {
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+  .wt-panetext,
+  .wt-rbar,
+  .wt-rfile {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+  /* 差异区窄：工具栏上的「全部展开 / 收起」只留图标。 */
+  .wt-stackbar .wt-expandlabel {
+    display: none;
+  }
+  .wt-refs {
+    flex: 0 0 100%;
+    order: 2;
+    margin-left: 0;
+    padding: 0 0 6px;
+  }
+  /* 操作栏放不下带文字的次要按钮：AI 审查、获取 / 拉取 / 推送只留图标和数字，
+     最主要的那个（打开 / 新开 DSH 会话）照旧带文字，整栏保持一行。 */
+  .wt-actions .wt-btn:not(.is-primary) .wt-btnlabel {
+    display: none;
+  }
+  .wt-actions .wt-btn:not(.is-primary) {
+    min-width: 30px;
+    padding: 0 6px;
   }
   .wt-session {
     grid-template-columns: minmax(0, 1fr) max-content;
@@ -1977,20 +2568,25 @@
   }
 }
 
-/* 详情栏很窄时（手机）：应用按钮收成纯图标。 */
+/* 详情栏很窄时（手机）：次要按钮只留图标，最主要的那个保留文字（悬停提示和读屏名字都在）。 */
 @container detail (max-width: 430px) {
-  .wt-btnlabel {
+  .wt-actions .wt-btnlabel {
     display: none;
   }
   .wt-actions .wt-btn {
-    width: 32px;
-    height: 32px;
-    justify-content: center;
-    padding: 0;
+    min-width: 30px;
+    padding: 0 6px;
   }
   .wt-actions .wt-btn.is-primary {
     width: auto;
-    padding: 0 12px;
+    padding: 0 10px;
+  }
+  .wt-actions .wt-btn.is-primary .wt-btnlabel {
+    display: inline;
+  }
+  /* 「在 DSH 新开会话」在手机上简写成「新开会话」（悬停提示和读屏名字不变）。 */
+  .wt-btnlong {
+    display: none;
   }
 }
 
@@ -2031,14 +2627,26 @@
     padding-left: 8px;
     border-left: 1px solid var(--wt-line);
   }
-  .wt-scope {
+  .wt-pick {
     max-width: 150px;
   }
   .wt-chip {
     padding: 0 8px;
   }
-  .wt-dinner {
-    padding-bottom: 20px;
+  /* 手机上行高一点，手指好点。 */
+  .wt-row {
+    height: 36px;
+  }
+  .wt-grouphead {
+    height: 34px;
+  }
+  .wt-skeleton {
+    gap: 24px;
+    padding-top: 12px;
+    padding-bottom: 14px;
+  }
+  .wt-noterow {
+    padding-left: 12px;
   }
   .wt-empty {
     padding: 36px 20px;
@@ -2048,11 +2656,944 @@
   }
 }
 
+/* ---------- 文件区：差异从上到下铺开 + 文件树（固定 / 浮窗） ---------- */
+.wt-filelist {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+/* 浮窗模式下左缘留出 14px 给把手：把手占自己的位置，不压在差异上。 */
+.wt-filelist.is-float {
+  padding-left: 14px;
+}
+@media (hover: none) {
+  /* 触屏没有「停在上面」这回事：不留把手的位置，浮窗只从工具栏的按钮打开。 */
+  .wt-filelist.is-float {
+    padding-left: 0;
+  }
+  .wt-treefloat:not(.is-open) {
+    display: none;
+  }
+}
+/* 固定：文件树占左边一栏（宽度见 --tree-w），差异排在右边，各自滚动。
+   差异在文档顺序里排在第一个（换摆法时不重建），画面上的左右用网格位置定。 */
+.wt-filelist.is-docked {
+  display: grid;
+  grid-template-columns: var(--tree-w) minmax(0, 1fr);
+}
+.wt-filelist.is-docked > .wt-diffstack {
+  grid-column: 2;
+  grid-row: 1;
+}
+.wt-filelist.is-docked > .wt-filetree {
+  grid-column: 1;
+  grid-row: 1;
+}
+.wt-treepanel {
+  container: tree / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--wt-bg);
+}
+.wt-filetree {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--wt-line);
+}
+.wt-treehead {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 0 10px;
+}
+.wt-treefilter {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 6px 8px 10px;
+  border-bottom: 1px solid var(--wt-line);
+}
+.wt-treefilter .wt-minisearch {
+  background: var(--wt-surface);
+}
+/* 筛选标签排成一行；文件树窄时摆成整齐的 2 × 2，不让最后一个孤零零地掉到第二行。 */
+.wt-treefilter .wt-seg {
+  flex: none;
+  flex-wrap: nowrap;
+}
+@container tree (max-width: 264px) {
+  .wt-treefilter .wt-seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    row-gap: 2px;
+  }
+  .wt-treefilter .wt-seg button {
+    justify-content: center;
+  }
+}
+/* 图钉：竖着是已固定，斜着是没固定。 */
+.wt-pin .wt-icon {
+  transform: rotate(45deg);
+  transition: transform 0.12s;
+}
+.wt-pin[aria-pressed='true'] {
+  background: var(--wt-selected);
+  color: var(--wt-accent);
+}
+.wt-pin[aria-pressed='true'] .wt-icon {
+  transform: none;
+}
+.wt-treepanel .wt-files {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 6px 10px;
+  overflow-y: auto;
+}
+.wt-treepanel > .wt-emptyline {
+  padding: 8px 10px;
+}
+/* 文件树不宽：徽标已经说明了是修改还是未跟踪，不再重复写一遍，把地方留给文件名。 */
+.wt-treepanel .wt-fchange {
+  display: none;
+}
+.wt-treepanel .wt-file {
+  grid-template-columns: 22px minmax(0, 1fr) max-content max-content;
+  min-height: 28px;
+}
+.wt-treepanel .wt-dir {
+  min-height: 26px;
+}
+
+/* 文件树里当前滚到的文件。 */
+.wt-file[data-active] {
+  background: var(--wt-selected);
+}
+.wt-fnote {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  color: var(--wt-ink-2);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.wt-fnote[data-level='warn'] {
+  color: var(--wt-warn);
+}
+.wt-fnote[data-level='fix'] {
+  color: var(--wt-danger);
+}
+/* 浮窗模式下它是弹性项目：要声明会伸长，否则宽度跟着内容走、右边空出一截。固定成两栏后它是网格单元，自动填满。 */
+.wt-diffstack {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+.wt-stackbar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 8px 0 6px;
+  border-bottom: 1px solid var(--wt-line);
+  background: var(--wt-bg);
+}
+/* 浮窗模式下工具栏最左边是打开文件树的按钮：鼠标停在这里，或者点一下。 */
+.wt-treetoggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  margin-right: 4px;
+}
+.wt-treetoggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--wt-r-sm);
+  color: var(--wt-ink-2);
+  font-size: 12.5px;
+}
+.wt-treetoggle-btn:hover,
+.wt-treetoggle-btn[aria-expanded='true'] {
+  background: var(--wt-hover);
+  color: var(--wt-ink);
+}
+.wt-treetoggle-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wt-treetoggle-btn b {
+  color: var(--wt-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.wt-treetoggle-btn small {
+  color: var(--wt-ink-3);
+  font-weight: 500;
+}
+.wt-treetoggle .wt-iconbtn {
+  width: 22px;
+  height: 22px;
+}
+/* 上一个 / 下一个文件，中间是「第几个 / 共几个」。 */
+.wt-stepper {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  color: var(--wt-ink-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.wt-stepper b {
+  min-width: 46px;
+  color: var(--wt-ink);
+  font-weight: 600;
+  text-align: center;
+}
+.wt-stepper .wt-iconbtn {
+  width: 24px;
+  height: 24px;
+}
+.wt-stackcard {
+  border-bottom: 1px solid var(--wt-line);
+}
+/* 浮窗：平时只有左缘 14px 宽的把手；展开时向右让出文件树的宽度（内容不变，只是不再被裁掉）。
+   把手和浮窗是同一个元素：从把手滑进浮窗不算「离开」。它从工具栏下面开始，不盖住工具栏。 */
+.wt-treefloat {
+  position: absolute;
+  top: 36px;
+  bottom: 0;
+  left: 0;
+  z-index: 6;
+  width: 14px;
+  overflow: hidden;
+  background: var(--wt-bg);
+  transition: width 0.14s ease-out;
+}
+.wt-treefloat.is-open {
+  width: var(--tree-w);
+  border-right: 1px solid var(--wt-line);
+  box-shadow: var(--wt-shadow);
+}
+.wt-treestrip {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  color: var(--wt-ink-3);
+  transition: opacity 0.1s;
+}
+.wt-treestrip:hover {
+  color: var(--wt-ink);
+  background: var(--wt-hover);
+}
+.wt-treefloat.is-open .wt-treestrip {
+  opacity: 0;
+  pointer-events: none;
+}
+.wt-treefloat > .wt-treepanel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 14px;
+  width: var(--tree-w);
+  visibility: hidden;
+  transition:
+    visibility 0s linear 0.16s,
+    left 0.14s ease-out;
+}
+.wt-treefloat.is-open > .wt-treepanel {
+  left: 0;
+  visibility: visible;
+  transition-delay: 0s;
+}
+/* 收着的文件就是一行文件名。 */
+.wt-filehead {
+  width: 100%;
+  border-radius: 0;
+}
+/* 差异还没读到时先占个位置，滚动条不跳动。 */
+.wt-filewait {
+  height: 140px;
+}
+
+/* ---------- 审查状态条 ---------- */
+.wt-review {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 10px 20px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--wt-line);
+  border-radius: var(--wt-r);
+  background: var(--wt-bg);
+  color: var(--wt-ink-2);
+  font-size: 12.5px;
+}
+.wt-review.is-running .wt-spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+.wt-review.is-failed {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--wt-danger) 7%, var(--wt-bg));
+  color: var(--wt-danger);
+}
+.wt-review.is-done > b {
+  color: var(--wt-ink);
+  font-weight: 650;
+}
+.wt-reviewicon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--wt-raised);
+  color: var(--wt-ink-2);
+}
+.wt-reviewicon[data-tone='ok'] {
+  background: color-mix(in srgb, var(--wt-ok) 18%, transparent);
+  color: var(--wt-ok);
+}
+.wt-reviewicon[data-tone='warn'] {
+  background: color-mix(in srgb, var(--wt-warn) 20%, transparent);
+  color: var(--wt-warn);
+}
+.wt-reviewicon[data-tone='danger'] {
+  background: color-mix(in srgb, var(--wt-danger) 14%, transparent);
+  color: var(--wt-danger);
+}
+.wt-reviewcounts {
+  color: var(--wt-ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.wt-reviewcounts b {
+  color: var(--wt-ink);
+  font-weight: 600;
+}
+.wt-reviewsummary {
+  flex: 1 1 200px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--wt-ink-2);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wt-reviewhint,
+.wt-reviewstale {
+  color: var(--wt-ink-3);
+  font-size: 12px;
+}
+.wt-reviewstale {
+  color: var(--wt-warn);
+}
+/* 审查结论条排在页签和正文之间，两个页签上都看得见。 */
+.wt-dtabs + .wt-review {
+  margin-top: 10px;
+}
+/* 关联会话里标出「代码审查」的那个小标签：排在标题下面，靠左，不撑满整行。 */
+.wt-sbody > .wt-tag {
+  justify-self: start;
+  margin-top: 2px;
+  margin-left: 0;
+}
+
+/* ---------- 差异里的批注 ---------- */
+/* 够宽：批注占代码右边一栏，贴着它说的那一行。 */
+.wt-diffbox[data-margin] {
+  --wt-note: clamp(220px, 34%, 360px);
+}
+.wt-diffbox[data-margin] .wt-line,
+.wt-diffbox[data-margin] .wt-hunkhead {
+  grid-template-columns: 44px 44px 14px minmax(0, 1fr) var(--wt-note);
+}
+.wt-diffbox[data-margin] .wt-hunkbody.is-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--wt-note);
+}
+/* 块头还是六格（左半、右半各是行号、符号、范围），后面多出批注那一栏。 */
+.wt-diffbox[data-margin] .wt-hunkhead.is-split {
+  grid-template-columns: 44px 14px minmax(0, 1fr) 44px 14px minmax(0, 1fr) var(
+      --wt-note
+    );
+}
+/* 左半、右半、批注各占固定的一格。没有批注的行第三格空着——不写死位置的话，
+   浏览器自动排版会把下一行的代码填进这个空格，整份差异错位、代码跑进批注栏。 */
+.wt-diffbox[data-margin] .wt-srow > .wt-half:first-child {
+  grid-column: 1;
+}
+.wt-diffbox[data-margin] .wt-srow > .wt-half:nth-child(2) {
+  grid-column: 2;
+}
+/* 行里带着批注卡片时这一行会变高：行号栏的着色只盖住这一行文字，不跟着拉成一整块。 */
+.wt-diffbox[data-margin] .wt-line > .wt-ln {
+  align-self: start;
+}
+/* 倒数第二条网格线，也就是最后一栏：上下对照是五栏（…代码、批注），左右并排是三栏（左半、右半、批注），
+   两种都落在批注那一栏。写死栏号的话，上下对照时会落进「符号」那一格。 */
+.wt-notecell {
+  grid-column: -2;
+  align-self: start;
+  min-width: 0;
+  padding: 6px 10px 6px 0;
+}
+.wt-notecell > .wt-note + .wt-note {
+  margin-top: 6px;
+}
+/* 窄：行尾一个标记，点开在这一行下面看。 */
+.wt-codecell {
+  display: flex;
+  /* 撑满这一行的高度，标记在里面居中：换行后占好几行的代码，标记落在中间而不是贴着第一行。 */
+  align-items: center;
+  align-self: stretch;
+  min-width: 0;
+}
+.wt-codecell > .wt-code {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.wt-notemark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+  margin: 0 8px 0 10px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--wt-raised-2);
+  color: var(--wt-ink-2);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.wt-notemark[data-level='warn'] {
+  color: var(--wt-warn);
+}
+.wt-notemark[data-level='fix'] {
+  color: var(--wt-danger);
+}
+.wt-notemark:is(:hover, [aria-expanded='true']) {
+  background: var(--wt-ink);
+  color: var(--wt-bg);
+}
+/* 有问题的那一行：行号栏着色，滚过去也看得见。 */
+.wt-line[data-note='warn'] > .wt-ln,
+.wt-srow[data-note='warn'] > .wt-half[data-kind='add'] > .wt-ln {
+  background: color-mix(in srgb, var(--wt-warn) 30%, transparent);
+}
+.wt-line[data-note='fix'] > .wt-ln,
+.wt-srow[data-note='fix'] > .wt-half[data-kind='add'] > .wt-ln {
+  background: color-mix(in srgb, var(--wt-danger) 32%, transparent);
+}
+.wt-line[data-flash] {
+  animation: wt-flash 1.3s ease-out;
+}
+@keyframes wt-flash {
+  from {
+    box-shadow: inset 0 0 0 2px var(--wt-accent);
+  }
+}
+.wt-noterow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 12px 6px 102px;
+  border-top: 1px solid var(--wt-line);
+  border-bottom: 1px solid var(--wt-line);
+  background: var(--wt-raised);
+}
+.wt-noterow.is-span,
+.wt-noterow.is-loose {
+  grid-column: 1 / -1;
+}
+/* 卡片平分它所在的那一条、铺到和代码一样的右边：一条里放不下两张时才换行。 */
+.wt-noterow > .wt-note {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.wt-note {
+  min-width: 0;
+  border: 1px solid var(--wt-line);
+  border-radius: var(--wt-r-sm);
+  background: var(--wt-surface);
+  font-size: 12px;
+}
+.wt-note[data-level='fix'] {
+  border-color: color-mix(in srgb, var(--wt-danger) 50%, transparent);
+}
+.wt-note[data-level='warn'] {
+  border-color: color-mix(in srgb, var(--wt-warn) 55%, transparent);
+}
+.wt-notehead {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+}
+.wt-notedot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--wt-ink-3);
+}
+.wt-note[data-level='warn'] .wt-notedot {
+  background: var(--wt-warn);
+}
+.wt-note[data-level='fix'] .wt-notedot {
+  background: var(--wt-danger);
+}
+.wt-notetitle {
+  flex: 1;
+  min-width: 0;
+  color: var(--wt-ink);
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.wt-notetag {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--wt-raised);
+  color: var(--wt-ink-2);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 16px;
+}
+.wt-note[data-level='fix'] .wt-notetag {
+  background: color-mix(in srgb, var(--wt-danger) 13%, transparent);
+  color: var(--wt-danger);
+}
+.wt-note[data-level='warn'] .wt-notetag {
+  background: color-mix(in srgb, var(--wt-warn) 18%, transparent);
+  color: var(--wt-warn);
+}
+.wt-notechevron {
+  flex: none;
+  margin-top: 3px;
+  color: var(--wt-ink-3);
+  transform: rotate(-90deg);
+}
+.wt-notechevron.is-open {
+  transform: none;
+}
+.wt-notebody {
+  padding: 0 10px 8px 21px;
+  color: var(--wt-ink-2);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.wt-notejump {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  color: var(--wt-ink-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.wt-notejump .wt-iconbtn {
+  width: 24px;
+  height: 24px;
+}
+.wt-notejump b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.wt-hunkno {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-width: 18px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--wt-selected);
+  color: var(--wt-accent);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+/* ---------- 同步的结果 ---------- */
+.wt-syncout {
+  max-height: 240px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  overflow: auto;
+  border-radius: var(--wt-r-sm);
+  background: var(--wt-raised);
+  font-family: var(--wt-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+/* ---------- 工具栏上看差异的方式（左右并排、自动换行）：对整个文件区生效 ---------- */
+.wt-viewbtns {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+}
+.wt-viewbtns .wt-iconbtn {
+  width: 24px;
+  height: 24px;
+}
+
+/* ---------- 审查结果页签：批注按文件列出 ---------- */
+.wt-rbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px 8px;
+  border-bottom: 1px solid var(--wt-line);
+  background: var(--wt-bg);
+}
+.wt-rhint {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--wt-ink-3);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wt-rfile {
+  padding: 12px 20px 2px;
+}
+.wt-rfilehead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  color: var(--wt-ink-3);
+  font-family: var(--wt-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+.wt-rfilepath {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--wt-ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wt-rfilehead b {
+  color: var(--wt-ink-3);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.wt-rlist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wt-rnotehead {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+}
+.wt-rline {
+  flex: none;
+  margin-top: 1px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--wt-raised);
+  color: var(--wt-ink-3);
+  font-family: var(--wt-mono);
+  font-size: 10.5px;
+  line-height: 16px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wt-wrap *,
   .wt-wrap *::before,
   .wt-wrap *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* ---------- 已审阅：读过的文件做个记号，只做统计 ---------- */
+/* 勾选框：差异的标题行、收起来的文件行、文件树里是同一个。
+   审阅之后又改过的，框里是琥珀色的一点，没打勾。 */
+.wt-reviewed {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: var(--wt-r-sm);
+  color: var(--wt-ink-2);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.wt-reviewed:hover {
+  background: var(--wt-hover);
+}
+/* 真正的勾选框看不见，但还在排版里：键盘 Tab 得到、读屏读得到；焦点落在旁边画的那个框上。 */
+.wt-reviewed input {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.wt-reviewed:has(input:focus-visible) .wt-reviewedbox {
+  outline: 2px solid var(--wt-accent);
+  outline-offset: 2px;
+}
+.wt-reviewedbox {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--wt-ink-3);
+  border-radius: 4px;
+  background: var(--wt-bg);
+  color: #fff;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.wt-reviewedbox .wt-icon {
+  stroke-width: 2.6;
+}
+.wt-reviewed:hover .wt-reviewedbox {
+  border-color: var(--wt-ink-2);
+}
+.wt-reviewed[data-state='viewed'] .wt-reviewedbox {
+  border-color: var(--wt-accent);
+  background: var(--wt-accent);
+}
+.wt-reviewed[data-state='changed'] .wt-reviewedbox {
+  border-color: var(--wt-warn);
+  background: color-mix(in srgb, var(--wt-warn) 20%, transparent);
+}
+.wt-reviewed[data-state='changed'] .wt-reviewedbox::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wt-warn);
+}
+.wt-reviewed[data-state='viewed'] .wt-reviewedlabel {
+  color: var(--wt-ink-3);
+}
+.wt-difftools .wt-reviewed {
+  margin-left: 2px;
+}
+/* 文件树里的一个文件：左边是勾，右边是文件名。勾和目录行的箭头上下对齐成一列。 */
+.wt-filewrap {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.wt-filewrap > .wt-reviewed {
+  height: 28px;
+  padding: 0 2px 0 calc(9px + var(--depth, 0) * 16px);
+}
+.wt-filewrap > .wt-file {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding-left: 4px;
+}
+/* 收着的文件：一行文件名，最右是「已审阅」。整行都能点开，勾选框那一块除外。 */
+.wt-filerow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.wt-filerow:hover {
+  background: var(--wt-hover);
+}
+.wt-filerow > .wt-file {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding-left: 6px;
+  /* 徽标和文件名之后的东西可多可少（有新改动、批注数、改动说明、增删行数、箭头），各占一格、按内容定宽。
+     写死五格的话，带批注的文件多出一个元素，箭头会被挤到第二行。 */
+  grid-template-columns: 22px minmax(0, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+}
+.wt-filerow > .wt-file:hover {
+  background: none;
+}
+.wt-filerow > .wt-reviewed {
+  margin-right: 6px;
+}
+/* 已审阅的文件：徽标和文件名淡一点，一眼看得出哪些还没看。 */
+.wt-stackcard[data-viewed='viewed'] :is(.wt-fname, .wt-badge),
+.wt-filewrap[data-viewed='viewed'] :is(.wt-fname, .wt-badge) {
+  opacity: 0.62;
+}
+/* 审阅之后又有改动的文件。 */
+.wt-tag-changed {
+  background: color-mix(in srgb, var(--wt-warn) 16%, transparent);
+  color: var(--wt-warn);
+}
+/* 已审阅的进度环：从十二点起顺时针填到已审阅的占比。清单行尾和工具栏里是同一个。 */
+.wt-ring {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  transform: rotate(-90deg);
+}
+.wt-ring-track,
+.wt-ring-fill {
+  fill: none;
+  stroke-width: 2;
+}
+.wt-ring-track {
+  stroke: var(--wt-line-2);
+}
+.wt-ring-fill {
+  stroke: var(--wt-ok);
+  transition: stroke-dasharray 0.2s;
+}
+/* 清单行尾的已审阅进度：环 + 3/8；都读完了是一个绿色的对勾。 */
+.wt-marks > b[data-k='seen'] {
+  gap: 3px;
+  font-family: var(--wt-font);
+  font-size: 11px;
+  font-weight: 600;
+}
+.wt-marks > b[data-k='seen'][data-done] {
+  color: var(--wt-ok);
+}
+/* AI 审查的星后面的数：有几处要处理。 */
+.wt-marks > b[data-k='review'] {
+  font-family: var(--wt-font);
+  font-size: 11px;
+  font-weight: 650;
+}
+/* 工具栏上的进度：环 +「已审阅 3 / 12」，旁边一键全标。
+   差异区窄的时候只写 3/12，再窄把「全部已审阅」收起来（逐个勾照样可以）。 */
+.wt-diffstack {
+  container: stack / inline-size;
+}
+.wt-seen {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  padding: 0 4px;
+  color: var(--wt-ink-2);
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.wt-seen[data-done] {
+  color: var(--wt-ok);
+}
+.wt-seenshort {
+  display: none;
+}
+@container stack (max-width: 619px) {
+  .wt-seenlong {
+    display: none;
+  }
+  .wt-seenshort {
+    display: inline;
+  }
+}
+@container stack (max-width: 539px) {
+  .wt-seenall {
+    display: none;
+  }
+}
+/* 差异区很窄（固定成两栏、左边目录又占去一栏）：进度只留环，数字在悬停提示和清单行尾。 */
+@container stack (max-width: 409px) {
+  .wt-seenlong,
+  .wt-seenshort {
+    display: none;
+  }
+}
+
+/* ---------- 「未推送」的范围：和上游比的改动 ---------- */
+/* 和上游比时已经提交的文件：徽标带一点底色，和「已暂存」的实心墨色区分开。 */
+.wt-badge[data-tone='commit'] {
+  background: color-mix(in srgb, var(--wt-accent) 13%, transparent);
+  color: var(--wt-accent);
+}
+/* 这个范围里包含的提交：和哪个上游比、几个提交，新的在前。 */
+.wt-outgoing {
+  flex: none;
+  padding: 8px 20px 4px;
+  color: var(--wt-ink-2);
+  font-size: 12.5px;
+}
+.wt-outgoinghead {
+  margin-bottom: 2px;
+}
+.wt-commits li {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  min-height: 22px;
+  white-space: nowrap;
+}
+.wt-commits time {
+  flex: none;
+  color: var(--wt-ink-3);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.wt-outgoingmore {
+  margin-left: 6px;
+  color: var(--wt-ink-3);
+  font-size: 12px;
+}
+@container detail (max-width: 559px) {
+  .wt-outgoing {
+    padding-right: 14px;
+    padding-left: 14px;
   }
 }

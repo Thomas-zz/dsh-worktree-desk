@@ -5,7 +5,15 @@ import { Icon } from './icons.jsx'
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export function Modal({ title, onClose, children, footer, wide }) {
+// initialFocus：打开时焦点落到哪个控件（选择器）；不给就按下面的默认规则。
+export function Modal({
+  title,
+  onClose,
+  children,
+  footer,
+  wide,
+  initialFocus,
+}) {
   const ref = useRef(null)
   // 关闭回调每次渲染都可能是新的，事件监听里要拿到最新的那个。
   const close = useRef(onClose)
@@ -15,6 +23,7 @@ export function Modal({ title, onClose, children, footer, wide }) {
     const box = ref.current
     // 默认焦点落在最稳妥的位置：有底部按钮就落在第一个（确认类对话框里是「取消」）。
     ;(
+      (initialFocus && box?.querySelector(initialFocus)) ??
       box?.querySelector('.wt-modalfoot button') ??
       box?.querySelector(FOCUSABLE) ??
       box

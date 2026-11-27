@@ -1,6 +1,8 @@
 // 面板（React）与宿主服务之间的桥。面板每次渲染后把最新的数据和回调写进 latest，
 // 右键菜单的 resolve 在菜单被打开的那一刻读取它——菜单项拿到的只是可序列化的 { repo, path }。
 
+import { scopeFiles } from './model.js'
+
 export const menuKind = 'worktree-desk/tree'
 export const latest = { current: null }
 
@@ -133,6 +135,27 @@ export function menuActions(value) {
       label: dsh.length ? '新开一个 DSH 会话' : '在 DSH 新开会话',
       run: () => act.newDsh(tree),
     })
+    if (scopeFiles(tree, 'uncommitted')?.length && act.review)
+      items.push({
+        id: 'dsh:review',
+        label: 'AI 审查未提交的改动',
+        run: () => act.review(value.repo, tree, 'uncommitted'),
+      })
+    if (scopeFiles(tree, 'outgoing')?.length && act.review)
+      items.push({
+        id: 'dsh:review-outgoing',
+        label: 'AI 审查未推送的改动',
+        run: () => act.review(value.repo, tree, 'outgoing'),
+      })
+    // 这个仓库自己配的审查提示词（只换「审什么、重点找什么」）。
+    if (act.editPrompt)
+      items.push({
+        id: 'dsh:review-prompt',
+        label: latest.current.prompted?.(value.repo)
+          ? '本仓库的审查提示词（已自定义）…'
+          : '本仓库的审查提示词…',
+        run: () => act.editPrompt(value.repo),
+      })
   }
   if (codex)
     items.push({
