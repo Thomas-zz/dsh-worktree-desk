@@ -1,8 +1,23 @@
 {
   "name": "dsh-worktree-desk",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "本机 Git 工作树总览：状态、就地差异、本地分支与跨 harness 会话",
-  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Thomas-zz/dsh-worktree-desk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Thomas-zz/dsh-worktree-desk/issues"
+  },
+  "homepage": "https://github.com/Thomas-zz/dsh-worktree-desk",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "git",
+    "worktree"
+  ],
   "type": "module",
   "main": "src/host.js",
   "exports": {

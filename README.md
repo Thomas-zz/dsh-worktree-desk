@@ -14,16 +14,43 @@
 
 环境：DeepSeek Harness（DSH）桌面端 `0.2.2-rc.5` 起、低于 `0.3.0`；需要 Git。没有运行时依赖，`dist/client.js` 随包带上，不用先装开发依赖。只在 macOS 上验证过；其它系统未验证，「在应用中打开」「跳到 Codex」这类系统联动也只在 macOS 可用。
 
-安装会改动 DSH 桌面端的 profile，所以顺序是：**完全退出 DSH → 安装 → 重新打开**。`desktop` 这个 profile 要在桌面端打开过至少一次之后才存在。
+包名是 `dsh-worktree-desk`，发布在 npm 上，下面几种方式装的是同一个包。命令里的 `desktop` 是桌面端的 profile，它要在桌面端打开过至少一次之后才存在；给别的 profile 装就换成它的名字。
 
-### 让 AI 帮你装（推荐）
+### 在 DSH 里安装
+
+打开「设置 → 插件」，点「添加插件」，选「安装第三方插件」，在「包名或地址」里填 `dsh-worktree-desk`，点「安装」并确认。装完点「立即启用」；需要重启时它会提示。全程不用退出 DSH。
+
+### 插件市场
+
+同一个页面的「发现」页签里搜索 `dsh-worktree-desk`，点「安装」并确认，装完按提示启用。
+
+「发现」页如果是空的，先点「添加索引源」，填入社区插件目录的索引地址：
+
+```text
+https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json
+```
+
+这个目录（[awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)）由社区维护，新插件和新版本进去都要等它更新，通常隔天。搜不到就用命令行。
+
+### 命令行（从 npm 安装）
+
+先完全退出 DSH 桌面端（⌘Q）：安装会改动它的 profile。再执行：
+
+```bash
+DSH="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
+"$DSH" plugin --profile desktop add dsh-worktree-desk
+```
+
+然后重新打开 DSH，左侧栏会多一个「工作树」。`dsh` 不在这个路径就用 `command -v dsh` 找到它。
+
+### 让 AI 帮你装
 
 把下面这段话整段发给你电脑上的 Agent（ZCode、Codex、Claude Code 都可以）：
 
 ```text
-请帮我在我的电脑上安装 DSH（DeepSeek Harness）的插件「工作树」（dsh-worktree-desk），版本 v0.5.0。
+请帮我在我的电脑上安装 DSH（DeepSeek Harness）的插件「工作树」（dsh-worktree-desk），从 npm 装最新发布的版本。
 
-它是什么：给 DSH 侧栏加一个「工作树」面板，总览本机所有 Git 仓库的工作树（状态、差异、本地分支），关联本机的 Codex / ZCode / DSH 会话，能在面板里发起 AI 代码审查。它默认只读，不改我的 Git 仓库；获取、拉取、推送只在我点了按钮并确认之后才执行。项目说明：https://github.com/Thomas-zz/dsh-worktree-desk
+它是什么：给 DSH 侧栏加一个「工作树」面板，总览本机所有 Git 仓库的工作树（状态、差异、本地分支），关联本机的 Codex / ZCode / DSH 会话，能在面板里发起 AI 代码审查。它默认只读，不改我的 Git 仓库；获取在我点了按钮之后才执行，拉取和推送还要我再确认一次。项目说明：https://github.com/Thomas-zz/dsh-worktree-desk
 
 请按顺序做，每一步把结果告诉我：
 
@@ -32,48 +59,56 @@
    - 装了 DeepSeek Harness 桌面端，版本在 0.2.2-rc.5 到 0.3.0 之间（不含 0.3.0）。macOS 上它的命令行在
      /Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh
      不在这个位置就先找到它（比如 command -v dsh），用「<dsh 路径> --version」看版本。
-   - ~/.dsh/profiles/desktop/package.json 存在，说明桌面端至少打开过一次。不存在的话让我先打开一次 DSH 桌面端再继续。里面已经有 dsh-worktree-desk 的话，告诉我现在的版本，按升级处理（后面步骤照做）。
-   - 装了 Git（git --version），能访问 github.com。
+   - ~/.dsh/profiles/desktop/package.json 存在，说明桌面端至少打开过一次。不存在的话让我先打开一次 DSH 桌面端再继续。
+   - 装了 Git（git --version）。
 
 2. 让我完全退出 DSH 桌面端。安装会改动它的 profile，DSH 命令行的提示要求先完全退出（⌘Q，不是只关窗口）。这一步由我自己做：你告诉我可以退出了，等我确认后，用
      pgrep -fl "DeepSeek Harness.app/Contents/MacOS"
    核对确实没有进程。不要替我退出应用。
 
 3. 安装。把 <dsh> 换成第 1 步找到的路径，原样执行：
-     <dsh> plugin --profile desktop add "https://github.com/Thomas-zz/dsh-worktree-desk.git#v0.5.0"
-   这条命令只改 DSH 的 desktop profile（加一条依赖、登记一个 bundle）。不要改我的其它 profile，不要动 ~/.dsh 下别的文件。
+     <dsh> plugin --profile desktop add dsh-worktree-desk@latest
+   这条命令从 npm 安装最新发布版，已经装过的话就是升级。它只改 DSH 的 desktop profile（加一条依赖、登记一个 bundle）。不要改我的其它 profile，不要动 ~/.dsh 下别的文件。
 
 4. 核对，三项都对才算装好：
    - ~/.dsh/profiles/desktop/package.json 里，dependencies 有 dsh-worktree-desk，dsh.profile.bundles 里也有 dsh-worktree-desk；
-   - ~/.dsh/profiles/desktop/node_modules/dsh-worktree-desk/package.json 的 version 是 0.5.0；
+   - ~/.dsh/profiles/desktop/node_modules/dsh-worktree-desk/package.json 的 version，记下来告诉我；
    - 该目录下有 dist/client.js 和 src/host.js。
 
 5. 告诉我可以重新打开 DSH 了。打开后左侧栏会多一个「工作树」。
 
-如果第 3 步报错：不要换别的版本号或来源将就。把完整报错给我，并提出备用方案（从 https://github.com/Thomas-zz/dsh-worktree-desk/releases/tag/v0.5.0 下载 dsh-worktree-desk-0.5.0.tgz 和 SHA256SUMS，用 shasum -a 256 -c SHA256SUMS 校验，解压到一个长期保留的目录，再用「<dsh> plugin --profile desktop add <解压目录>」安装），等我同意再做。
+如果第 3 步报错：不要换别的版本号或来源将就。把完整报错给我，并提出备用方案（从 https://github.com/Thomas-zz/dsh-worktree-desk/releases/latest 下载 dsh-worktree-desk-X.Y.Z.tgz 和 SHA256SUMS，用 shasum -a 256 -c SHA256SUMS 校验，解压到一个长期保留的目录，再用「<dsh> plugin --profile desktop add <解压目录>」安装），等我同意再做。
 
 全程约束：不要读取或输出我的任何密钥、令牌、会话内容；不要在我的 Git 仓库里做任何写操作；不要修改插件目录里的文件。
 
 最后告诉我：装了什么版本、改了哪些文件、还差哪一步需要我做。
 ```
 
-### 自己装
+### 从 GitHub 安装（不经 npm）
 
 先完全退出 DSH 桌面端（⌘Q），再执行：
 
 ```bash
 DSH="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
-"$DSH" plugin --profile desktop add "https://github.com/Thomas-zz/dsh-worktree-desk.git#v0.5.0"
+"$DSH" plugin --profile desktop add "https://github.com/Thomas-zz/dsh-worktree-desk.git#main"
 ```
 
-然后重新打开 DSH，左侧栏会多一个「工作树」。`dsh plugin add` 底层是 pnpm，所以也接受本地目录：
+然后重新打开 DSH。公开仓的 `main` 就是最新发布的那个版本；要装固定版本，把 `main` 换成 [Releases](https://github.com/Thomas-zz/dsh-worktree-desk/releases) 里的标签。
+
+`dsh plugin add` 底层是 pnpm，所以也接受本地目录：
 
 1. 从 [Releases](https://github.com/Thomas-zz/dsh-worktree-desk/releases) 下载 `dsh-worktree-desk-X.Y.Z.tgz` 和 `SHA256SUMS`，放在同一目录，运行 `shasum -a 256 -c SHA256SUMS`。
 2. 解压到一个会长期保留的目录：`tar -xzf dsh-worktree-desk-X.Y.Z.tgz -C <目录> --strip-components=1`。
 3. `"$DSH" plugin --profile desktop add <目录>`。克隆仓库后 add 仓库目录也可以。还可以在桌面端「设置 → 插件」里从本地目录安装。
 
-**升级**：完全退出 DSH，把命令里的标签换成新版本重跑（本地目录方式则是更新目录内容），再重新打开。
-**卸载**：完全退出 DSH 后运行 `"$DSH" plugin --profile desktop remove dsh-worktree-desk`，或在「设置 → 插件」里移除。
+### 升级和卸载
+
+下面命令里的 `$DSH` 就是上面那两段 `DSH=...` 里定义的路径。
+
+- **在 DSH 里装的、从插件市场装的、从 npm 装的**：「设置 → 插件」的「已安装」里会标出「可更新」，点「更新」。
+- **在命令行里升级**：完全退出 DSH，执行 `"$DSH" plugin --profile desktop add dsh-worktree-desk@latest`，再重新打开。重跑不带 `@latest` 的那条安装命令不会升级。
+- **从 GitHub 标签装的**：完全退出 DSH，把标签换成新版本重跑，再重新打开。从本地目录装的，更新目录内容后重跑。
+- **卸载**：在「设置 → 插件」里点「卸载」；或者完全退出 DSH 后运行 `"$DSH" plugin --profile desktop remove dsh-worktree-desk`。
 
 ## 能做什么
 
@@ -212,3 +247,14 @@ npm run release -- --bump patch             # patch | minor | major，也可 --v
 - 两道闸都调用 `scripts/release-audit.mjs`。发布脚本在推送前审查发布提交的全部文件和发布说明；推送到公开仓时，公开仓克隆里的 pre-push 钩子再审查快照提交本身（提交信息、作者身份、全部文件）和标签，手工 `git push` 也不例外。开发目录里指向公开仓地址的推送也会被它拦下来审，私有历史不能从这条路出去。钩子由发布脚本安装并保持最新；不要用 `--no-verify` 绕过钩子。
 - 提交身份用 GitHub noreply 邮箱，在开发目录和公开仓克隆里各自设置。
 - 建 Release 时，装了 `gh` 并且已登录就用 `gh`；否则用 git 自己的 GitHub 凭据调 API，凭据只留在进程内存里，不进命令行、不写文件、不打印。两条路都不行时，会列出要手动上传的文件。
+- **脚本不发 npm。** 包同时发布在 npm（包名 `dsh-worktree-desk`），插件市场和命令行安装都从那里取。GitHub 上发完之后，把回退包目录里和 Release 资产相同的那个包发上去。发包要本人在浏览器里过两步验证，所以是单独一条命令：
+
+  ```bash
+  npm publish ~/.local/share/dsh-worktree-desk/releases/<版本>/dsh-worktree-desk-<版本>.tgz --registry=https://registry.npmjs.org
+  ```
+
+  本机默认的 npm 源不是官方源，`--registry` 不能省。发完用 `npm view dsh-worktree-desk version --registry=https://registry.npmjs.org` 确认新版本已经可见（发布被受理后要等几分钟）。
+
+## 许可
+
+MIT，见 [LICENSE](LICENSE)。
